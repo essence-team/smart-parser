@@ -15,4 +15,4 @@ COPY ./fastapi_telethon_session.session /app/fastapi_telethon_session.session
 
 EXPOSE 80
 
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8091"]

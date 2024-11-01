@@ -1,13 +1,16 @@
 services:
-  essense_parser:
-    image: essense_parser:dev
+  essence_parser:
+    image: essence_parser:dev
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    container_name: essense_parser
+    container_name: essence_parser
     ports:
-      - "8091:80/tcp"
+      - "8091:8091/tcp"
+    networks:
+      - essence_network
 
 
 networks:
-  essense:
+  essence_network:
+    driver: bridge
