@@ -2,9 +2,10 @@ import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 
-from crud.channel import get_all_channels_with_subscribers
+from crud.channel import get_all_channels_with_subscribers, update_channel_subs_cnt
 from crud.post import create_post, delete_old_posts, get_posts_by_channel, update_post
 from database.db_session_maker import database
+from services.channel_handler import get_channel_subscribers_count
 from services.telethon_client import TelethonClient
 from services.title_composer import get_first_sentence
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,7 +14,7 @@ from telethon.types import Message
 
 
 class DailyPostHandler:
-    def __init__(self, telethon_client: TelethonClient, days_to_keep: int = 3):
+    def __init__(self, telethon_client: TelethonClient, days_to_keep: int = 31):
         self.tg_client = telethon_client.client
         self.logger = logging.getLogger(__name__)
         self.days_to_keep = days_to_keep
@@ -27,6 +28,11 @@ class DailyPostHandler:
 
         for channel in channels:
             print(f"Processing channel: {channel.channel_link}")
+
+            subs_count = await get_channel_subscribers_count(self.tg_client, channel.channel_link)
+            await update_channel_subs_cnt(session, channel.channel_link, subs_count)
+            print(f"Updated subscriber count for channel {channel.channel_link} to {subs_count}")
+
             try:
                 # Fetch all messages in one API call within the date range
                 messages = await self._fetch_messages(channel.channel_link, date_to_keep_from)
