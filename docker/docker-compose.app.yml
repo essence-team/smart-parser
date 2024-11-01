@@ -1,0 +1,13 @@
+services:
+  essense_parser:
+    image: essense_parser:dev
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: essense_parser
+    ports:
+      - "8091:80/tcp"
+
+
+networks:
+  essense:
