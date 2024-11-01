@@ -1,38 +1,49 @@
-from fastapi import APIRouter, Depends, HTTPException
+import logging
+
+from crud.channel import create_channel, get_channel
+from database.db_session_maker import get_db_session
+from fastapi import APIRouter, Depends, HTTPException, status
 from routers import check_api_key_access
+from routers.utils import extract_channel_username
+from schemas.channel import ChannelAddRequest, ChannelAddResponse
+from services.channel_handler import get_channel_subscribers_count
 from services.telethon_client import get_telethon_client
-from telethon.errors import ChannelInvalidError, ChannelPrivateError
-from telethon.tl.functions.channels import GetFullChannelRequest
-from telethon.tl.types import Channel
+from sqlalchemy.ext.asyncio import AsyncSession
 
-channel_router = APIRouter(prefix="/channels", tags=["channels"])
+channel_router = APIRouter(prefix="/channel", tags=["channels"])
 
 
-@channel_router.get("/check/{channel_link}")
-async def check_channel(
-    channel_link: str,
+@channel_router.post(
+    "/add",
+    status_code=status.HTTP_200_OK,
+    response_model=list[ChannelAddResponse],
+)
+async def add_channels_for_user(
+    data: ChannelAddRequest,
+    db: AsyncSession = Depends(get_db_session),
     telethon_client=Depends(get_telethon_client),
-    api_key: str = Depends(check_api_key_access),
+    api_key=Depends(check_api_key_access),
 ):
-    try:
-        # Получаем базовую информацию о канале
-        entity = await telethon_client.get_entity(channel_link)
+    result = []
+    for channel_link in data.channel_links:
+        channel_name = extract_channel_username(channel_link)
+        channel_info = ChannelAddResponse(channel_link=channel_name, exists=False)
+        try:
+            # Проверяем, есть ли канал уже в базе данных
+            channel = await get_channel(db, channel_link=channel_name)
+            if channel:
+                channel_info.exists = True
+            else:
+                # Получаем количество подписчиков через отдельную функцию
+                subs_cnt = await get_channel_subscribers_count(telethon_client, channel_name)
+                if subs_cnt is not None:
+                    # Создаем канал в базе данных
+                    await create_channel(db, channel_link=channel_name, subs_cnt=subs_cnt)
+                    channel_info.exists = True
+        except Exception as e:
+            logging.exception(f"Unexpected error processing channel {channel_name}: {e}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
 
-        if isinstance(entity, Channel):
-            # Получаем полную информацию о канале
-            full_channel = await telethon_client(GetFullChannelRequest(channel=entity))
+        result.append(channel_info)
 
-            # Извлекаем количество участников
-            subscribers_count = full_channel.full_chat.participants_count
-
-            return {"exists": True, "channel_title": entity.title, "subscribers_count": subscribers_count}
-        else:
-            # Если сущность не является каналом
-            return {"exists": False, "detail": "Entity is not a channel"}
-
-    except (ChannelInvalidError, ChannelPrivateError):
-        raise HTTPException(status_code=404, detail="Channel not found")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-    return {"exists": False}
+    return result
