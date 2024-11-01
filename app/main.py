@@ -1,4 +1,5 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from core.config.config_loader import main_config
 from database.db_session_maker import close_db_connection, initialize_database
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,7 +21,7 @@ async def startup_event():
     await initialize_database()
 
     # Запускаем расписание задач
-    daily_post_handler = DailyPostHandler(client_instance)
+    daily_post_handler = DailyPostHandler(client_instance, days_to_keep=main_config.daily_post_handler.days_to_keep)
     # scheduler.add_job(daily_post_handler.run_daily_tasks, "cron", minute="*/1")
     scheduler.add_job(daily_post_handler.run_daily_tasks, "cron", hour=0, minute=0)
     scheduler.start()
