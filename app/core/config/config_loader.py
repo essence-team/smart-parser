@@ -1,4 +1,5 @@
 import yaml
+from core.config.models.daily_post_handler import DailyPostHandlerConfig
 from core.config.models.database import DatabaseConfig
 from core.config.models.loggers import LoggersConfig
 from core.config.models.telethon import TelethonConfig
@@ -13,6 +14,7 @@ class Config(BaseSettings):
     database: DatabaseConfig
     loggers: LoggersConfig
     telethon: TelethonConfig
+    daily_post_handler: DailyPostHandlerConfig
 
 
 def load_yaml_config(file_path: str):
@@ -29,10 +31,7 @@ def load_config() -> Config:
     loggers = LoggersConfig()
     telethon = TelethonConfig()
 
-    if yaml_config is not None:
-        settings = Config(**yaml_config, database=database, loggers=loggers)
-    else:
-        settings = Config(database=database, loggers=loggers, telethon=telethon)
+    settings = Config(**yaml_config, database=database, loggers=loggers, telethon=telethon)
 
     return settings
 
