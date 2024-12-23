@@ -1,2 +1,2 @@
 daily_post_handler:
-  days_to_keep: 3
+  days_to_keep: 15

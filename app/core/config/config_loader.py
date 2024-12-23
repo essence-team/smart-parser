@@ -11,6 +11,8 @@ class Config(BaseSettings):
     env: str
     access_api_key: str
 
+    giga_key: str
+
     database: DatabaseConfig
     loggers: LoggersConfig
     telethon: TelethonConfig
