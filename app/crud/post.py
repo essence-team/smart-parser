@@ -5,12 +5,14 @@ from typing import List, Optional
 from models.post import Post
 from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 
 async def create_post(
     session: AsyncSession,
     post_link: str,
     channel_link: str,
+    text: str,  # TODO: remove this parameter
     title: Optional[str] = None,
     embedding: Optional[List[float]] = None,
     amount_reactions: int = 0,
@@ -20,6 +22,7 @@ async def create_post(
     post = Post(
         post_link=post_link,
         channel_link=channel_link,
+        text=text,  # TODO: remove this parameter
         title=title,
         embedding=embedding,
         amount_reactions=amount_reactions,
@@ -37,10 +40,8 @@ async def get_post_by_link(session: AsyncSession, post_link: str):
     return result.scalar_one_or_none()
 
 
-async def get_all_posts(session: AsyncSession, days_to_keep: int) -> List[Post]:
-    cutoff_date = datetime.now(timezone.utc) - timedelta(days=days_to_keep)
-    query = select(Post).where(Post.published_at >= cutoff_date)
-    result = await session.execute(query)
+async def get_all_posts(session: AsyncSession) -> List[Post]:
+    result = await session.execute(select(Post).options(selectinload(Post.channel)))
     return result.scalars().all()
 
 
@@ -89,17 +90,15 @@ async def delete_old_posts(session: AsyncSession, days_to_keep: int) -> int:
     result = await session.execute(stmt)
     await session.commit()
 
-    # Возвращаем количество удалённых строк
     return result.rowcount
 
 
-async def get_latest_post_by_channel(session: AsyncSession, channel_link: str) -> Optional[Post]:
+async def get_latest_post_by_channel(session: AsyncSession, channel_link: str) -> Post | None:
     query = select(Post).where(Post.channel_link == channel_link).order_by(Post.published_at.desc()).limit(1)
     result = await session.execute(query)
     return result.scalars().first()
 
 
-# In crud/post.py, add this function
-async def get_posts_by_channel(session, channel_link):
+async def get_posts_by_channel(session, channel_link) -> List[Post]:
     result = await session.execute(select(Post).where(Post.channel_link == channel_link))
     return result.scalars().all()
