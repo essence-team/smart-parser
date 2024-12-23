@@ -22,8 +22,10 @@ async def startup_event():
 
     # Запускаем расписание задач
     daily_post_handler = DailyPostHandler(client_instance, days_to_keep=main_config.daily_post_handler.days_to_keep)
-    # scheduler.add_job(daily_post_handler.run_daily_tasks, "cron", minute="*/1")
+    await daily_post_handler.run_daily_tasks()
     scheduler.add_job(daily_post_handler.run_daily_tasks, "cron", hour=0, minute=0)
+    # scheduler.add_job(daily_post_handler.run_daily_tasks, "cron", minute="*/1")
+
     scheduler.start()
 
     print("Scheduler started and daily tasks scheduled")
