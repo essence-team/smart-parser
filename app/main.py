@@ -4,6 +4,7 @@ from database.db_session_maker import close_db_connection, initialize_database
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers.channel import channel_router
+from routers.question import question_router
 from services.daily_post_handler import DailyPostHandler
 from services.telethon_client import client_instance
 
@@ -51,6 +52,7 @@ app = FastAPI(
     tags_metadata=tags_metadata,
 )
 app.include_router(channel_router)
+app.include_router(question_router)
 
 origins = ["*"]
 app.add_middleware(
