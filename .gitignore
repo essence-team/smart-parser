@@ -163,3 +163,4 @@ cython_debug/
 
 
 fastapi_telethon_session.session
+.DS_Store
