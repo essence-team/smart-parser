@@ -3,11 +3,12 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from crud.channel import get_all_channels_with_subscribers, update_channel_subs_cnt
-from crud.post import create_post, delete_old_posts, get_posts_by_channel, update_post
+from crud.post import create_post, delete_old_posts, get_all_posts, get_posts_by_channel, update_post
 from database.db_session_maker import database
 from services.aggregator import Aggregator
 from services.channel_handler import get_channel_subscribers_count
 from services.embedder import embedder
+from services.qrag import qrag
 from services.telethon_client import TelethonClient
 from services.title_composer import summarizer
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -81,6 +82,13 @@ class DailyPostHandler:
                 print(f"Error processing channel {channel.channel_link}: {e}")
 
         await session.commit()
+
+        all_posts = await get_all_posts(session=session)
+        qrag.build_indexes(
+            posts=[post.text for post in all_posts],
+            embeddings=[post.embedding for post in all_posts],
+        )
+
         print("All posts updated and new posts fetched")
 
     async def _fetch_messages(self, channel_link: str, date_to_keep_from: datetime):
